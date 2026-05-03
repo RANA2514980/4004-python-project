@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 from db.connection import DatabaseConnection
 from db.schema import DatabaseSchema
 from ui.controller import UIController
-from ui.terminal_adapter import TerminalUIAdapter
+from ui.tkinter_adapter import TkinterUIAdapter
 
 
 def initialize_app():
@@ -47,7 +47,7 @@ def main():
             print("\nPlease check the logs for more details.")
             return 1
         
-        adapter = TerminalUIAdapter()
+        adapter = TkinterUIAdapter()
         controller = UIController(adapter)
         controller.run()
         

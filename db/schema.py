@@ -2,6 +2,10 @@ import logging
 from db.connection import DatabaseConnection
 from db.tables import TABLE_CREATORS
 from db.tables import users_table
+from db.tables import warehouses_table
+from db.tables import products_table
+from db.tables import inventory_table
+from db.tables import inventory_movements_table
 
 logger = logging.getLogger(__name__)
 

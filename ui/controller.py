@@ -105,6 +105,8 @@ class UIController:
         self.adapter.show_header()
         current_password, new_password, confirm_password = self.adapter.get_password_reset_input()
 
+        if not current_password and not new_password and not confirm_password:
+            return
         if not current_password or not new_password or not confirm_password:
             self.adapter.clear()
             self.adapter.show_header()
@@ -127,6 +129,8 @@ class UIController:
         self.adapter.show_header()
         email, password, name, role = self.adapter.get_create_user_input()
 
+        if not email and not password and not name and not role:
+            return
         if not email or not password or not name or not role:
             self.adapter.clear()
             self.adapter.show_header()
