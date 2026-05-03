@@ -14,6 +14,7 @@ from ui.views import (
 from services.auth_service import AuthService
 from services.warehouse_assignment_service import WarehouseAssignmentService
 from repositories.warehouse_repository import WarehouseRepository
+from services.manager_service import ManagerService
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,8 @@ class TkinterUIAdapter:
         self.auth_service = AuthService()
         self.warehouse_repo = WarehouseRepository()
         self.warehouse_assignment_service = WarehouseAssignmentService(self.auth_service)
-
+        self.manager_service = ManagerService()
+        
         # LAYOUT
         self.content = tk.Frame(self.root, bg="#f2f4f7")
         self.content.pack(fill=tk.BOTH, expand=True)
@@ -108,8 +110,12 @@ class TkinterUIAdapter:
             ))
 
         elif role == "manager":
-            self._render(lambda p: manager_dashboard.build(p, callbacks, user))
-
+            self._render(lambda p: manager_dashboard.build(
+                p,
+                callbacks,
+                user,
+                self.manager_service
+            ))
         elif role == "warehouse_staff":
             self._render(lambda p: warehouse_dashboard.build(p, callbacks, user))
 
