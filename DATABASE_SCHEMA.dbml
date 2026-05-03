@@ -1,0 +1,23 @@
+// Data Management System - Database Schema (DBML)
+// Entity Relationship Diagram for SQLite3 Database
+
+Table users {
+  id integer [pk, increment]
+  email string [unique, not null]
+  name string [not null]
+  password_hash string [not null]
+  password_salt string [not null]
+  role string [not null, default: 'warehouse_staff']
+  created_at timestamp [default: 'CURRENT_TIMESTAMP']
+  updated_at timestamp [default: 'CURRENT_TIMESTAMP']
+  is_active boolean [default: true]
+  
+  Note: 'Role options: admin, manager, driver, warehouse_staff'
+}
+
+// Example Notes:
+// - Each user has a unique email
+// - Passwords are hashed with SHA-256 and a random salt
+// - Role-based access control (RBAC) for authorization
+// - is_active flag for soft delete functionality
+// - Timestamps for audit trails
