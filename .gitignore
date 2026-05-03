@@ -36,3 +36,4 @@ dist/
 .coverage
 htmlcov/
 .pytest_cache/
+file_structure.txt

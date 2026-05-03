@@ -1,6 +1,8 @@
-TABLE_CREATORS = []
+from .registry import TABLE_CREATORS
 
-
-def register(creator):
-    TABLE_CREATORS.append(creator)
-    return creator
+from .users_table import create_users_table
+from .warehouses_table import create_warehouses_table
+from .products_table import create_products_table
+from .inventory_table import create_inventory_table
+from .inventory_movements_table import create_inventory_movements_table
+from .warehouse_staff_assignment_table import create_warehouse_staff_assignment_table

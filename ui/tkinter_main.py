@@ -1,12 +1,19 @@
 import logging
 import tkinter as tk
 
-from ui.views import login_view
-from ui.views import admin_dashboard
-from ui.views import manager_dashboard
-from ui.views import warehouse_dashboard
-from ui.views import driver_dashboard
-from ui.views import create_user_view
+from ui.views import (
+    login_view,
+    admin_dashboard,
+    manager_dashboard,
+    warehouse_dashboard,
+    driver_dashboard,
+    create_user_view,
+    warehouse_detail_view
+)
+
+from services.auth_service import AuthService
+from services.warehouse_assignment_service import WarehouseAssignmentService
+from repositories.warehouse_repository import WarehouseRepository
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +29,16 @@ class TkinterUIAdapter:
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # state
-        self._closed = False
-        self._login_result = (None, None)
-        self._status_var = tk.StringVar(value="")
+        # STATE
         self.current_user = None
+        self._status_var = tk.StringVar(value="")
 
-        # layout
+        # SERVICES
+        self.auth_service = AuthService()
+        self.warehouse_repo = WarehouseRepository()
+        self.warehouse_assignment_service = WarehouseAssignmentService(self.auth_service)
+
+        # LAYOUT
         self.content = tk.Frame(self.root, bg="#f2f4f7")
         self.content.pack(fill=tk.BOTH, expand=True)
 
@@ -43,75 +53,59 @@ class TkinterUIAdapter:
         )
         self.status_label.pack(side=tk.LEFT, padx=10)
 
-        # ❌ REMOVE pages system completely (IMPORTANT FIX)
-        # self.pages = {}
-        # self._build_pages()
-
         self._show_login()
 
-    # -----------------------------
-    # WINDOW CONTROL
-    # -----------------------------
+    # ---------------- CORE ----------------
 
     def _on_close(self):
-        self._closed = True
         self.root.quit()
 
     def run(self):
         self.root.mainloop()
 
-    # -----------------------------
-    # SCREEN RENDERING (FIXED)
-    # -----------------------------
-
-    def _clear_screen(self):
+    def _clear(self):
         for w in self.content.winfo_children():
             w.destroy()
 
-    def _render(self, build_fn):
-        self._clear_screen()
-        frame = build_fn(self.content)
+    def _render(self, builder):
+        self._clear()
+        frame = builder(self.content)
         frame.pack(fill=tk.BOTH, expand=True)
 
-    # -----------------------------
-    # LOGIN
-    # -----------------------------
+    # ---------------- LOGIN ----------------
 
     def _show_login(self):
-        self._render(lambda parent: login_view.build(parent, self._submit_login))
+        self._render(lambda p: login_view.build(p, self._submit_login))
 
     def _submit_login(self, email, password):
-        from services.auth_service import AuthService
-
-        auth_service = AuthService()
-
-        user = auth_service.login(email, password)
+        user = self.auth_service.login(email, password)
 
         if user:
+            self.current_user = user
             self.show_success("Login successful")
             self.show_dashboard(user)
         else:
-            self.show_error("Invalid email or password")
+            self.show_error("Invalid credentials")
 
-    def get_login_input(self):
-        return self._login_result
+    # ---------------- DASHBOARD ----------------
 
-    # -----------------------------
-    # DASHBOARD
-    # -----------------------------
-
-    def show_dashboard(self, user, callbacks=None):
+    def show_dashboard(self, user):
         self.current_user = user
         role = user["role"]
-        callbacks = callbacks or {
+
+        warehouses = self.warehouse_repo.list_warehouses()
+
+        callbacks = {
             "create_user": self._show_create_user,
-            "manage_warehouses": lambda: self.show_message("Manage Warehouses clicked"),
-            "view_reports": lambda: self.show_message("Reports clicked"),
+            "create_warehouse": self._show_create_warehouse,
+            "open_warehouse": self.open_warehouse_detail,
             "logout": self._show_login
         }
 
         if role == "admin":
-            self._render(lambda p: admin_dashboard.build(p, callbacks, user))
+            self._render(lambda p: admin_dashboard.build(
+                p, callbacks, user, warehouses
+            ))
 
         elif role == "manager":
             self._render(lambda p: manager_dashboard.build(p, callbacks, user))
@@ -122,54 +116,93 @@ class TkinterUIAdapter:
         elif role == "driver":
             self._render(lambda p: driver_dashboard.build(p, callbacks, user))
 
-        else:
-            self._set_status("Invalid role", "error")
-    
-    def _show_create_user(self):
-        self._render(
-            lambda p: create_user_view.build(
-                p,
-                self._submit_create_user,
-                lambda: self.show_dashboard(self.current_user)
+    # ---------------- WAREHOUSE ----------------
+
+    def _show_create_warehouse(self):
+        def build(parent):
+            frame = tk.Frame(parent, bg="#f2f4f7")
+
+            tk.Label(
+                frame,
+                text="Create Warehouse",
+                font=("Arial", 14, "bold"),
+                bg="#f2f4f7"
+            ).pack(pady=10)
+
+            name_entry = tk.Entry(frame, width=30)
+            name_entry.pack(pady=10)
+
+            def submit():
+                success = self.warehouse_repo.create_warehouse(
+                    name_entry.get().strip(),
+                    "Default Location"
+                )
+
+                if success:
+                    self.show_success("Warehouse created")
+                    self.show_dashboard(self.current_user)
+                else:
+                    self.show_error("Failed to create warehouse")
+
+            tk.Button(frame, text="Create", command=submit).pack(pady=10)
+
+            tk.Button(
+                frame,
+                text="Back",
+                command=lambda: self.show_dashboard(self.current_user)
+            ).pack()
+
+            return frame
+
+        self._render(build)
+
+    def open_warehouse_detail(self, warehouse):
+        def build(parent):
+            return warehouse_detail_view.build(
+                parent=parent,
+                warehouse=warehouse,
+                service=self.warehouse_assignment_service,
+                on_back=lambda: self.show_dashboard(self.current_user)
             )
-        )
-    
-    
+
+        self._render(build)
+
+    # ---------------- USER ----------------
+
+    def _show_create_user(self):
+        self._render(lambda p: create_user_view.build(
+            p,
+            self._submit_create_user,
+            lambda: self.show_dashboard(self.current_user)
+        ))
+
     def _submit_create_user(self, email, name, password, role):
-        from services.auth_service import AuthService
-
-        auth = AuthService()
-        auth.current_user = self.current_user
-
-        user = auth.register_user(email, name, password, role)
+        user = self.auth_service.register_user(email, name, password, role)
 
         if user:
-            self.show_success("User created successfully")
+            self.show_success("User created")
             self.show_dashboard(self.current_user)
         else:
             self.show_error("Failed to create user")
-    
-    
 
-    # -----------------------------
-    # STATUS BAR
-    # -----------------------------
+    # ---------------- STATUS ----------------
 
     def _set_status(self, text, style="info"):
         self._status_var.set(text)
 
-        if style == "error":
-            self.status_label.config(fg="#b42318")
-        elif style == "success":
-            self.status_label.config(fg="#067647")
-        else:
-            self.status_label.config(fg="#5a6779")
+        color = {
+            "error": "#b42318",
+            "success": "#067647",
+            "info": "#5a6779"
+        }.get(style, "#5a6779")
 
-    def show_error(self, message):
-        self._set_status(message, "error")
+        self.status_label.config(fg=color)
 
-    def show_success(self, message):
-        self._set_status(message, "success")
+    def show_error(self, msg):
+        self._set_status(msg, "error")
 
-    def show_message(self, message):
-        self._set_status(message, "info")
+    def show_success(self, msg):
+        self._set_status(msg, "success")
+
+    def show_message(self, msg):
+        self._set_status(msg, "info")

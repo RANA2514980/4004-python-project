@@ -1,4 +1,4 @@
-from db.tables import register
+from db.tables.registry import register
 
 ROLES = ['admin', 'manager', 'driver', 'warehouse_staff']
 

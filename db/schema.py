@@ -7,6 +7,8 @@ from db.tables import products_table
 from db.tables import inventory_table
 from db.tables import inventory_movements_table
 
+from db.tables.warehouse_staff_assignment_table import create_warehouse_staff_assignment_table
+
 logger = logging.getLogger(__name__)
 
 
