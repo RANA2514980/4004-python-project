@@ -16,6 +16,7 @@ from services.warehouse_assignment_service import WarehouseAssignmentService
 from repositories.warehouse_repository import WarehouseRepository
 from services.manager_service import ManagerService
 from services.inventory_service import InventoryService
+from services.manager_service import ManagerService
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,8 @@ class TkinterUIAdapter:
             "create_user": self._show_create_user,
             "create_warehouse": self._show_create_warehouse,
             "open_warehouse": self.open_warehouse_detail,
+            "manage_vehicles": self._show_vehicle_management,
+            "manage_shipments": self._show_shipment_management,
             "logout": self._show_login
         }
 
@@ -215,3 +218,9 @@ class TkinterUIAdapter:
 
     def show_message(self, msg):
         self._set_status(msg, "info")
+    
+    def _show_vehicle_management(self):
+        self.show_message("Vehicle management coming next")
+
+    def _show_shipment_management(self):
+        self.show_message("Shipment management coming next")

@@ -28,17 +28,8 @@ class ManagerService:
 
         return total
 
-    def get_low_stock_items(self, threshold=10):
-        warehouses = self.warehouse_repo.list_warehouses()
-        low_stock = []
-
-        for w in warehouses:
-            items = self.inventory_repo.list_inventory_by_warehouse(w["id"])
-            for item in items:
-                if item["quantity"] <= threshold:
-                    low_stock.append(item)
-
-        return low_stock
+    def get_low_stock_items(self):
+        return self.inventory_repo.get_low_stock_items()
 
     # ---------------- ACTIVITY ----------------
 

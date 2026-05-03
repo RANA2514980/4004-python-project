@@ -93,3 +93,25 @@ class InventoryRepository:
             self.db_conn.get_connection().rollback()
             logger.error(f"Error adjusting inventory: {e}")
             return False
+    
+    def get_low_stock_items(self):
+        try:
+            query = """
+                SELECT 
+                    i.warehouse_id,
+                    w.name AS warehouse_name,
+                    i.product_id,
+                    p.name AS name,
+                    i.quantity
+                FROM inventory i
+                JOIN products p ON p.id = i.product_id
+                JOIN warehouses w ON w.id = i.warehouse_id
+                WHERE i.quantity <= i.reorder_level
+            """
+
+            results = self.db_conn.execute_query(query)
+            return [dict(r) for r in results]
+
+        except Exception as e:
+            logger.error(f"Low stock error: {e}")
+            return []
