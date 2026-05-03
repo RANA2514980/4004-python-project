@@ -47,8 +47,8 @@ class DatabaseSchema:
             
             admin_data = {
                 'email': 'admin@gmail.com',
-                'name': 'Administrator',
-                'password': 'password',
+                'name': 'admin',
+                'password': 'pass',
                 'role': 'admin'
             }
             

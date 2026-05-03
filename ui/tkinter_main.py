@@ -15,6 +15,7 @@ from services.auth_service import AuthService
 from services.warehouse_assignment_service import WarehouseAssignmentService
 from repositories.warehouse_repository import WarehouseRepository
 from services.manager_service import ManagerService
+from services.inventory_service import InventoryService
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class TkinterUIAdapter:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Northshore Logistics")
-        self.root.geometry("980x640")
+        self.root.geometry("1920x1080")
         self.root.minsize(900, 600)
         self.root.configure(bg="#f2f4f7")
 
@@ -39,6 +40,7 @@ class TkinterUIAdapter:
         self.warehouse_repo = WarehouseRepository()
         self.warehouse_assignment_service = WarehouseAssignmentService(self.auth_service)
         self.manager_service = ManagerService()
+        self.inventory_service = InventoryService(self.auth_service)
         
         # LAYOUT
         self.content = tk.Frame(self.root, bg="#f2f4f7")
@@ -167,7 +169,8 @@ class TkinterUIAdapter:
             return warehouse_detail_view.build(
                 parent=parent,
                 warehouse=warehouse,
-                service=self.warehouse_assignment_service,
+                assignment_service=self.warehouse_assignment_service,
+                inventory_service=self.inventory_service,
                 on_back=lambda: self.show_dashboard(self.current_user)
             )
 
