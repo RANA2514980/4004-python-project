@@ -2,6 +2,7 @@ import logging
 import hashlib
 import secrets
 from db.connection import DatabaseConnection
+from db.crypto import SimpleCrypto
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ class UserRepository:
     
     def __init__(self):
         self.db_conn = DatabaseConnection()
+        self.crypto = SimpleCrypto()
     
     @staticmethod
     def hash_password(password, salt=None):
@@ -86,18 +88,30 @@ class UserRepository:
     
     def update_user(self, user_id, **kwargs):
         try:
-            allowed_fields = ['name', 'role', 'is_active']
+            allowed_fields = [
+                'name',
+                'role',
+                'is_active',
+                'driver_license',
+                'driver_phone',
+                'driver_address'
+            ]
             update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
             
             if not update_fields:
                 logger.warning("No valid fields to update")
                 return False
+
+            if "driver_address" in update_fields:
+                update_fields["driver_address"] = self.crypto.encrypt(
+                    update_fields["driver_address"]
+                )
             
             set_clause = ', '.join([f'{field} = ?' for field in update_fields.keys()])
             values = list(update_fields.values())
             values.append(user_id)
             
-            query = f'UPDATE users SET {set_clause} WHERE id = ?'
+            query = f'UPDATE users SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
             self.db_conn.execute_update(query, values)
             
             logger.info(f"User {user_id} updated successfully")
@@ -110,7 +124,11 @@ class UserRepository:
     def update_password(self, user_id, new_password):
         try:
             password_hash, salt = self.hash_password(new_password)
-            query = 'UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?'
+            query = '''
+                UPDATE users
+                SET password_hash = ?, password_salt = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            '''
             self.db_conn.execute_update(query, (password_hash, salt, user_id))
             logger.info(f"Password updated for user {user_id}")
             return True
@@ -120,3 +138,24 @@ class UserRepository:
     
     def deactivate_user(self, user_id):
         return self.update_user(user_id, is_active=False)
+
+    def update_driver_profile(self, user_id, license_number=None, phone=None, address=None):
+        payload = {}
+        if license_number is not None:
+            payload["driver_license"] = license_number
+        if phone is not None:
+            payload["driver_phone"] = phone
+        if address is not None:
+            payload["driver_address"] = address
+
+        return self.update_user(user_id, **payload)
+
+    def get_driver_profile(self, user_id):
+        user = self.find_by_id(user_id)
+        if not user:
+            return None
+
+        if user.get("driver_address"):
+            user["driver_address"] = self.crypto.decrypt(user["driver_address"])
+
+        return user

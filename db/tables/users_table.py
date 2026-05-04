@@ -14,6 +14,9 @@ def create_users_table(connection):
             password_hash TEXT NOT NULL,
             password_salt TEXT NOT NULL,
             role TEXT NOT NULL CHECK(role IN ('admin', 'manager', 'driver', 'warehouse_staff')),
+            driver_license TEXT,
+            driver_phone TEXT,
+            driver_address TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_active BOOLEAN DEFAULT 1

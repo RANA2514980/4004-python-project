@@ -12,7 +12,8 @@ def build(parent, callbacks, user):
     tk.Button(
         card,
         text="Inventory",
-        width=25
+        width=25,
+        command=callbacks["inventory"]
     ).pack(pady=5)
 
     tk.Button(
@@ -25,7 +26,8 @@ def build(parent, callbacks, user):
     tk.Button(
         card,
         text="Stock Update",
-        width=25
+        width=25,
+        command=callbacks["stock_update"]
     ).pack(pady=5)
 
     tk.Button(

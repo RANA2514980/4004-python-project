@@ -1,6 +1,7 @@
 import logging
 from repositories.warehouse_repository import WarehouseRepository
 from repositories.inventory_repository import InventoryRepository
+from repositories.vehicle_repository import VehicleRepository
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ class ManagerService:
     def __init__(self):
         self.warehouse_repo = WarehouseRepository()
         self.inventory_repo = InventoryRepository()
+        self.vehicle_repo = VehicleRepository()
 
     # ---------------- WAREHOUSES ----------------
 
@@ -52,3 +54,17 @@ class ManagerService:
         except Exception as e:
             logger.error(f"Error fetching activity: {e}")
             return []
+
+    def get_vehicle_utilization(self):
+        vehicles = self.vehicle_repo.list_vehicles()
+        stats = {
+            "available": 0,
+            "in_use": 0,
+            "maintenance": 0
+        }
+
+        for vehicle in vehicles:
+            status = vehicle.get("status", "available")
+            stats[status] = stats.get(status, 0) + 1
+
+        return stats

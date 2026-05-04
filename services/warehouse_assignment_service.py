@@ -31,6 +31,9 @@ class WarehouseAssignmentService:
     def get_assigned_staff(self, warehouse_id):
         return self.repo.get_assigned_staff(warehouse_id)
 
+    def get_assignment_for_user(self, user_id):
+        return self.repo.get_assignment_for_user(user_id)
+
     def remove_assignment(self, user_id):
         if not self._require_admin():
             return False

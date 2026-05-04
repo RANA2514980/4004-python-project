@@ -8,8 +8,9 @@ logger = logging.getLogger(__name__)
 
 class WarehouseService:
 
-    def __init__(self, auth_service):
+    def __init__(self, auth_service, audit_service=None):
         self.auth_service = auth_service
+        self.audit = audit_service
         self.warehouse_repo = WarehouseRepository()
         self.product_repo = ProductRepository()
         self.inventory_repo = InventoryRepository()
@@ -31,7 +32,10 @@ class WarehouseService:
     def create_warehouse(self, name, location, status='active'):
         if not self._require_roles(['admin', 'manager']):
             return False
-        return self.warehouse_repo.create_warehouse(name, location, status)
+        ok = self.warehouse_repo.create_warehouse(name, location, status)
+        if ok and self.audit:
+            self.audit.log("create", "warehouse")
+        return ok
 
     def list_warehouses(self, active_only=True):
         if not self._require_authenticated():
@@ -46,7 +50,10 @@ class WarehouseService:
     def create_product(self, sku, name, description=None, unit='unit'):
         if not self._require_roles(['admin', 'manager']):
             return False
-        return self.product_repo.create_product(sku, name, description, unit)
+        ok = self.product_repo.create_product(sku, name, description, unit)
+        if ok and self.audit:
+            self.audit.log("create", "product")
+        return ok
 
     def list_products(self, active_only=True):
         if not self._require_authenticated():

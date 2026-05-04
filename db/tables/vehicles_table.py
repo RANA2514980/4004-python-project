@@ -17,6 +17,8 @@ def create_vehicles_table(connection):
                     'maintenance'
                 )),
             assigned_driver_id INTEGER,
+            last_service_date TEXT,
+            maintenance_due_date TEXT,
 
             FOREIGN KEY (assigned_driver_id) REFERENCES users(id)
         )

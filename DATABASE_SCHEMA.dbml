@@ -8,16 +8,117 @@ Table users {
   password_hash string [not null]
   password_salt string [not null]
   role string [not null, default: 'warehouse_staff']
+  driver_license string
+  driver_phone string
+  driver_address string
   created_at timestamp [default: 'CURRENT_TIMESTAMP']
   updated_at timestamp [default: 'CURRENT_TIMESTAMP']
   is_active boolean [default: true]
-  
+
   Note: 'Role options: admin, manager, driver, warehouse_staff'
 }
 
-// Example Notes:
-// - Each user has a unique email
-// - Passwords are hashed with SHA-256 and a random salt
-// - Role-based access control (RBAC) for authorization
-// - is_active flag for soft delete functionality
-// - Timestamps for audit trails
+Table warehouses {
+  id integer [pk, increment]
+  name string [unique, not null]
+  location string [not null]
+  status string [not null, default: 'active']
+  created_at timestamp [default: 'CURRENT_TIMESTAMP']
+  updated_at timestamp [default: 'CURRENT_TIMESTAMP']
+  is_active boolean [default: true]
+}
+
+Table products {
+  id integer [pk, increment]
+  sku string [unique, not null]
+  name string [not null]
+  description string
+  unit string [not null]
+  is_active boolean [default: true]
+  created_at timestamp [default: 'CURRENT_TIMESTAMP']
+  updated_at timestamp [default: 'CURRENT_TIMESTAMP']
+}
+
+Table inventory {
+  id integer [pk, increment]
+  warehouse_id integer [not null, ref: > warehouses.id]
+  product_id integer [not null, ref: > products.id]
+  quantity integer [not null, default: 0]
+  reorder_level integer [not null, default: 0]
+  updated_at timestamp [default: 'CURRENT_TIMESTAMP']
+
+  Indexes {
+    (warehouse_id, product_id) [unique]
+  }
+}
+
+Table inventory_movements {
+  id integer [pk, increment]
+  warehouse_id integer [not null, ref: > warehouses.id]
+  product_id integer [not null, ref: > products.id]
+  change_qty integer [not null]
+  movement_type string [not null]
+  note string
+  created_by integer [not null, ref: > users.id]
+  created_at timestamp [default: 'CURRENT_TIMESTAMP']
+}
+
+Table warehouse_staff_assignment {
+  id integer [pk, increment]
+  user_id integer [not null, unique, ref: > users.id]
+  warehouse_id integer [not null, ref: > warehouses.id]
+  assigned_at timestamp [default: 'CURRENT_TIMESTAMP']
+}
+
+Table shipments {
+  id integer [pk, increment]
+  shipment_code string [unique, not null]
+  order_number string
+  sender_name string [not null]
+  receiver_name string [not null]
+  receiver_address string [not null]
+  receiver_phone string
+  description string
+  warehouse_id integer [not null, ref: > warehouses.id]
+  assigned_driver_id integer [ref: > users.id]
+  status string [not null, default: 'pending']
+  transport_cost double [default: 0]
+  payment_status string [default: 'unpaid']
+  payment_reference string
+  delivery_date string
+  route_details string
+  created_at timestamp [default: 'CURRENT_TIMESTAMP']
+  updated_at timestamp [default: 'CURRENT_TIMESTAMP']
+}
+
+Table shipment_incidents {
+  id integer [pk, increment]
+  shipment_id integer [not null, ref: > shipments.id]
+  incident_type string [not null]
+  description string
+  status string [not null, default: 'open']
+  reported_by integer [ref: > users.id]
+  reported_at timestamp [default: 'CURRENT_TIMESTAMP']
+  resolved_at timestamp
+  resolution_note string
+}
+
+Table vehicles {
+  id integer [pk, increment]
+  vehicle_code string [unique, not null]
+  capacity integer [not null]
+  status string [not null, default: 'available']
+  assigned_driver_id integer [ref: > users.id]
+  last_service_date string
+  maintenance_due_date string
+}
+
+Table audit_logs {
+  id integer [pk, increment]
+  user_id integer [ref: > users.id]
+  action string [not null]
+  entity_type string [not null]
+  entity_id integer
+  details string
+  created_at timestamp [default: 'CURRENT_TIMESTAMP']
+}

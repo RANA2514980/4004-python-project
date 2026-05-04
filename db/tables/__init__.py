@@ -6,3 +6,7 @@ from .products_table import create_products_table
 from .inventory_table import create_inventory_table
 from .inventory_movements_table import create_inventory_movements_table
 from .warehouse_staff_assignment_table import create_warehouse_staff_assignment_table
+from .shipments_table import create_shipments_table
+from .vehicles_table import create_vehicles_table
+from .shipment_incidents_table import create_shipment_incidents_table
+from .audit_logs_table import create_audit_logs_table

@@ -33,6 +33,20 @@ def build(parent, callbacks, user, warehouses):
 
     tk.Button(
         card,
+        text="Manage Shipments",
+        width=25,
+        command=callbacks["manage_shipments"]
+    ).pack(pady=5)
+
+    tk.Button(
+        card,
+        text="Manage Vehicles",
+        width=25,
+        command=callbacks["manage_vehicles"]
+    ).pack(pady=5)
+
+    tk.Button(
+        card,
         text="Logout",
         width=25,
         command=callbacks["logout"]

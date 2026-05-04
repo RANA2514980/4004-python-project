@@ -12,7 +12,8 @@ def build(parent, callbacks, user):
     tk.Button(
         card,
         text="My Shipments",
-        width=25
+        width=25,
+        command=callbacks["my_shipments"]
     ).pack(pady=5)
 
     tk.Button(
@@ -25,7 +26,8 @@ def build(parent, callbacks, user):
     tk.Button(
         card,
         text="Report Incident",
-        width=25
+        width=25,
+        command=callbacks["report_incident"]
     ).pack(pady=5)
 
     tk.Button(

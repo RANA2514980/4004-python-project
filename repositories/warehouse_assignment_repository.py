@@ -59,6 +59,23 @@ class WarehouseAssignmentRepository:
             logger.error(f"Assigned staff error: {e}")
             return []
 
+    def get_assignment_for_user(self, user_id):
+        try:
+            query = """
+                SELECT w.*
+                FROM warehouses w
+                JOIN warehouse_staff_assignment a
+                ON a.warehouse_id = w.id
+                WHERE a.user_id = ?
+            """
+            results = self.db.execute_query(query, (user_id,))
+            if results:
+                return dict(results[0])
+            return None
+        except Exception as e:
+            logger.error(f"Assignment lookup error: {e}")
+            return None
+
     # ---------------- REMOVE ASSIGNMENT ----------------
 
     def remove_assignment(self, user_id):

@@ -26,6 +26,7 @@ def build(parent, callbacks, user, service):
 
     total_products = service.get_total_products()
     low_stock_count = len(service.get_low_stock_items())
+    vehicle_util = service.get_vehicle_utilization()
 
     tk.Label(
         kpi,
@@ -40,6 +41,17 @@ def build(parent, callbacks, user, service):
         font=("Arial", 11, "bold"),
         bg="#f2f4f7"
     ).grid(row=0, column=1, padx=20)
+
+    tk.Label(
+        kpi,
+        text=(
+            f"Vehicles A/I/M: {vehicle_util.get('available', 0)}"
+            f"/{vehicle_util.get('in_use', 0)}"
+            f"/{vehicle_util.get('maintenance', 0)}"
+        ),
+        font=("Arial", 11, "bold"),
+        bg="#f2f4f7"
+    ).grid(row=0, column=2, padx=20)
 
     # =================================================
     # WAREHOUSE SECTION
