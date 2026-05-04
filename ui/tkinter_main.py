@@ -22,6 +22,7 @@ from services.warehouse_service import WarehouseService
 from services.shipment_service import ShipmentService
 from services.vehicle_service import VehicleService
 from services.audit_service import AuditService
+from repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class TkinterUIAdapter:
         # SERVICES
         self.auth_service = AuthService()
         self.audit_service = AuditService(self.auth_service)
+        self.user_repo = UserRepository()
         self.warehouse_service = WarehouseService(self.auth_service, self.audit_service)
         self.warehouse_assignment_service = WarehouseAssignmentService(self.auth_service)
         self.manager_service = ManagerService()
@@ -274,9 +276,48 @@ class TkinterUIAdapter:
 
     # ---------------- SHIPMENTS ----------------
 
+    def _get_driver_options(self):
+        drivers = self.user_repo.get_users_by_role("driver")
+        options = []
+        mapping = {}
+        for d in drivers:
+            label = f"{d['name']} (id {d['id']})"
+            options.append(label)
+            mapping[label] = d["id"]
+        return options, mapping
+
+    def _get_warehouse_options(self):
+        warehouses = self.warehouse_service.list_warehouses()
+        options = []
+        mapping = {}
+        for w in warehouses:
+            label = f"{w['name']} (id {w['id']})"
+            options.append(label)
+            mapping[label] = w["id"]
+        return options, mapping
+
+    def _get_shipment_options(self):
+        if self.current_user and self.current_user.get("role") == "driver":
+            shipments = self.shipment_service.driver_shipments(self.current_user["id"])
+        else:
+            shipments = self.shipment_service.list_all()
+
+        options = []
+        mapping = {}
+        for s in shipments:
+            label = f"{s['shipment_code']} (id {s['id']})"
+            options.append(label)
+            mapping[label] = s["id"]
+        return options, mapping
+
     def _show_create_shipment(self):
         popup = tk.Toplevel(self.root)
         popup.title("Create Shipment")
+
+        warehouse_options, warehouse_map = self._get_warehouse_options()
+        if not warehouse_options:
+            tk.Label(popup, text="No warehouses available").pack(pady=10)
+            return
 
         fields = {
             "Shipment Code": tk.Entry(popup, width=35),
@@ -285,19 +326,21 @@ class TkinterUIAdapter:
             "Receiver Name": tk.Entry(popup, width=35),
             "Receiver Address": tk.Entry(popup, width=35),
             "Receiver Phone": tk.Entry(popup, width=35),
-            "Description": tk.Entry(popup, width=35),
-            "Warehouse ID": tk.Entry(popup, width=35)
+            "Description": tk.Entry(popup, width=35)
         }
 
         for label, entry in fields.items():
             tk.Label(popup, text=label).pack()
             entry.pack(pady=2)
 
+        tk.Label(popup, text="Warehouse").pack()
+        warehouse_var = tk.StringVar(value=warehouse_options[0])
+        tk.OptionMenu(popup, warehouse_var, *warehouse_options).pack(pady=2)
+
         def submit():
-            try:
-                warehouse_id = int(fields["Warehouse ID"].get().strip())
-            except ValueError:
-                self.show_error("Invalid warehouse ID")
+            warehouse_id = warehouse_map.get(warehouse_var.get())
+            if not warehouse_id:
+                self.show_error("Invalid warehouse selection")
                 return
 
             ok = self.shipment_service.create(
@@ -326,15 +369,19 @@ class TkinterUIAdapter:
         popup = tk.Toplevel(self.root)
         popup.title("Assign Driver")
 
-        tk.Label(popup, text="Driver ID").pack()
-        driver_entry = tk.Entry(popup, width=30)
-        driver_entry.pack(pady=5)
+        driver_options, driver_map = self._get_driver_options()
+        if not driver_options:
+            tk.Label(popup, text="No drivers available").pack(pady=10)
+            return
+
+        tk.Label(popup, text="Driver").pack()
+        driver_var = tk.StringVar(value=driver_options[0])
+        tk.OptionMenu(popup, driver_var, *driver_options).pack(pady=5)
 
         def submit():
-            try:
-                driver_id = int(driver_entry.get().strip())
-            except ValueError:
-                self.show_error("Invalid driver ID")
+            driver_id = driver_map.get(driver_var.get())
+            if not driver_id:
+                self.show_error("Invalid driver selection")
                 return
 
             ok = self.shipment_service.assign_driver(shipment_id, driver_id)
@@ -452,12 +499,19 @@ class TkinterUIAdapter:
         popup = tk.Toplevel(self.root)
         popup.title("Report Incident")
 
-        tk.Label(popup, text="Shipment ID").pack()
-        shipment_entry = tk.Entry(popup, width=30)
-        shipment_entry.pack(pady=5)
-
         if shipment_id:
-            shipment_entry.insert(0, str(shipment_id))
+            tk.Label(popup, text=f"Shipment ID: {shipment_id}").pack(pady=5)
+            shipment_var = None
+            shipment_map = None
+        else:
+            shipment_options, shipment_map = self._get_shipment_options()
+            if not shipment_options:
+                tk.Label(popup, text="No shipments available").pack(pady=10)
+                return
+
+            tk.Label(popup, text="Shipment").pack()
+            shipment_var = tk.StringVar(value=shipment_options[0])
+            tk.OptionMenu(popup, shipment_var, *shipment_options).pack(pady=5)
 
         tk.Label(popup, text="Incident Type").pack()
         incident_type = tk.StringVar(value="delay")
@@ -477,11 +531,13 @@ class TkinterUIAdapter:
         description.pack(pady=5)
 
         def submit():
-            try:
-                sid = int(shipment_entry.get().strip())
-            except ValueError:
-                self.show_error("Invalid shipment ID")
-                return
+            if shipment_id:
+                sid = shipment_id
+            else:
+                sid = shipment_map.get(shipment_var.get()) if shipment_map else None
+                if not sid:
+                    self.show_error("Invalid shipment selection")
+                    return
 
             ok = self.shipment_service.report_incident(
                 sid,
@@ -599,15 +655,19 @@ class TkinterUIAdapter:
         popup = tk.Toplevel(self.root)
         popup.title("Assign Driver")
 
-        tk.Label(popup, text="Driver ID").pack()
-        driver_id = tk.Entry(popup, width=30)
-        driver_id.pack(pady=5)
+        driver_options, driver_map = self._get_driver_options()
+        if not driver_options:
+            tk.Label(popup, text="No drivers available").pack(pady=10)
+            return
+
+        tk.Label(popup, text="Driver").pack()
+        driver_var = tk.StringVar(value=driver_options[0])
+        tk.OptionMenu(popup, driver_var, *driver_options).pack(pady=5)
 
         def submit():
-            try:
-                assigned_id = int(driver_id.get().strip())
-            except ValueError:
-                self.show_error("Invalid driver ID")
+            assigned_id = driver_map.get(driver_var.get())
+            if not assigned_id:
+                self.show_error("Invalid driver selection")
                 return
 
             ok = self.vehicle_service.update(vehicle_id, assigned_driver_id=assigned_id)

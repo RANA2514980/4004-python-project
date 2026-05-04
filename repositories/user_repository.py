@@ -85,6 +85,19 @@ class UserRepository:
         except Exception as e:
             logger.error(f"Error retrieving all users: {e}")
             return []
+
+    def get_users_by_role(self, role):
+        try:
+            query = '''
+                SELECT id, email, name, role
+                FROM users
+                WHERE role = ? AND is_active = 1
+            '''
+            results = self.db_conn.execute_query(query, (role,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            logger.error(f"Error retrieving users by role: {e}")
+            return []
     
     def update_user(self, user_id, **kwargs):
         try:
